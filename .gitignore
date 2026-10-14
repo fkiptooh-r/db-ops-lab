@@ -1,0 +1,22 @@
+# Secrets: commit .env.example, never .env
+.env
+*.pem
+*.key
+
+# Backups and dumps (week 2)
+backups/
+*.archive
+*.gz
+*.bson
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

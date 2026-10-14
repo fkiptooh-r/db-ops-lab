@@ -1,0 +1,70 @@
+# Stack A: 3-node MongoDB replica set (rs0)
+# Budget: ~1.5 GB RAM in total. Each mongod gets a 256 MB WiredTiger cache.
+#
+# Every node listens on its own port (27017 / 27018 / 27019), so the same
+# host:port names work inside the Docker network and from Ubuntu, once
+# mongo1..3 point to 127.0.0.1 in /etc/hosts (see the README).
+
+name: mongo-rs
+
+x-mongod: &mongod
+  image: mongo:7.0
+  restart: unless-stopped
+  mem_limit: 700m
+  networks: [labnet]
+  healthcheck:
+    test: ["CMD-SHELL", "mongosh --quiet --port $$PORT --eval 'db.adminCommand({ ping: 1 }).ok' | grep -q 1"]
+    interval: 10s
+    timeout: 5s
+    retries: 5
+    start_period: 20s
+
+services:
+  mongo1:
+    <<: *mongod
+    container_name: mongo1
+    hostname: mongo1
+    environment: { PORT: "27017" }
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all", "--port", "27017", "--wiredTigerCacheSizeGB", "0.25"]
+    ports: ["27017:27017"]
+    volumes: ["mongo1-data:/data/db"]
+
+  mongo2:
+    <<: *mongod
+    container_name: mongo2
+    hostname: mongo2
+    environment: { PORT: "27018" }
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all", "--port", "27018", "--wiredTigerCacheSizeGB", "0.25"]
+    ports: ["27018:27018"]
+    volumes: ["mongo2-data:/data/db"]
+
+  mongo3:
+    <<: *mongod
+    container_name: mongo3
+    hostname: mongo3
+    environment: { PORT: "27019" }
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all", "--port", "27019", "--wiredTigerCacheSizeGB", "0.25"]
+    ports: ["27019:27019"]
+    volumes: ["mongo3-data:/data/db"]
+
+  # Runs once: initiates rs0 if it isn't already, then exits.
+  mongo-init:
+    image: mongo:7.0
+    container_name: mongo-init
+    restart: "no"
+    networks: [labnet]
+    depends_on:
+      mongo1: { condition: service_healthy }
+      mongo2: { condition: service_healthy }
+      mongo3: { condition: service_healthy }
+    volumes: ["./init-replica.js:/init-replica.js:ro"]
+    command: ["mongosh", "--quiet", "mongodb://mongo1:27017/?directConnection=true", "/init-replica.js"]
+
+volumes:
+  mongo1-data:
+  mongo2-data:
+  mongo3-data:
+
+networks:
+  labnet:
+    name: labnet
