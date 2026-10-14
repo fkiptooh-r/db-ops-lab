@@ -138,6 +138,11 @@ def write(args):
             print(f"{stamp}  {ok:5d}  {err:5d}  {primary:15s}  {last_err}", flush=True)
     except KeyboardInterrupt:
         stop.set()
+        # Let in-flight inserts finish, then count the last partial second too.
+        for t in threads:
+            t.join(timeout=10)
+        total_ok += stats["ok"]
+        total_err += stats["err"]
         print(f"\nstopped. total ok={total_ok:,} failed={total_err:,}")
         client.close()
 
