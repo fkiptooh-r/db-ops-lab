@@ -57,9 +57,30 @@ Quick one-liner for member states:
 rs.status().members.map(m => `${m.name}  ${m.stateStr}  health=${m.health}`)
 ```
 
+## Who is primary?
+
+```bash
+scripts/rs_roles.sh             # one-off
+scripts/rs_roles.sh --watch     # live view, refreshes every 2 s
+```
+
+```
+mongo1:27017   PRIMARY    health=1
+mongo2:27018   SECONDARY  health=1
+mongo3:27019   SECONDARY  health=1
+```
+
+It asks each node in turn, so it keeps working while nodes are down. Docker Desktop (Containers → mongo-rs) shows whether each container is running, paused or stopped, but not its MongoDB role.
+
 ## Week 1 drills
 
-Keep `load_gen.py write` running in a second terminal for every drill. It shows when writes fail and when they come back. Time each drill.
+Use three terminals for every drill, and time each one:
+
+| Terminal | Command | Shows |
+|---|---|---|
+| 1 | `python scripts/load_gen.py write` | writes succeeding or failing, per second |
+| 2 | `scripts/rs_roles.sh --watch` | which node is primary |
+| 3 | the drill commands below | |
 
 ### 1. Primary down
 ```bash
