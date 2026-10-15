@@ -45,7 +45,7 @@ db-ops-lab/
 
 | Week | Incident | Runbook | MTTR |
 |------|----------|---------|------|
-| 1 | Primary down | [mongo-primary-down](runbooks/mongo-primary-down.md) | |
+| 1 | Primary down | [mongo-primary-down](runbooks/mongo-primary-down.md) | failover 75 ms (clean) / ~11 s (crash), 0 writes lost |
 | 1 | Replication lag | [mongo-replication-lag](runbooks/mongo-replication-lag.md) | |
 | 1 | No primary (lost majority) | [mongo-no-primary](runbooks/mongo-no-primary.md) | |
 
@@ -53,7 +53,7 @@ db-ops-lab/
 
 | Week | Focus | Status | Runbooks |
 |------|-------|--------|----------|
-| 1 | Replica set | in progress | 0 / 3 |
+| 1 | Replica set | in progress | 1 / 3 |
 | 2 | Backup & DR | | 0 / 3 |
 | 3 | Performance | | 0 / 2 |
 | 4 | Sharding | | 0 / 2 |
