@@ -85,7 +85,7 @@ docker exec <node> mongosh --quiet --port <port> --eval 'db.adminCommand({ curre
 |---|---|---|
 | CPU or memory starved | `docker stats --no-stream` | the lagging node near 100% CPU or at its memory limit |
 | Long-running work on the node | `docker exec <node> mongosh --quiet --port <port> --eval 'db.currentOp({ secs_running: { $gt: 10 } }).inprog.map(o => o.op + " " + o.ns + " " + o.secs_running + "s")'` | index builds or big queries hogging the secondary |
-| Sync source | `rs.status().members.map(m => m.name + " syncs from " + m.syncSourceHost)` | an empty sync source, or a chain through another lagging node |
+| Sync source | `rs.status().members.map(m => m.name + " syncs from " + m.syncSourceHost)` | a **secondary** with an empty sync source (the primary's is always empty), or one syncing through another lagging node |
 | Write burst on the primary | the app's or load_gen's write rate | a batch job writing faster than the secondaries can apply |
 | Errors on the node | `docker logs --tail 50 <node>` | disk errors, `too stale` |
 
