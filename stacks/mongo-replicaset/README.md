@@ -91,15 +91,37 @@ docker stop mongo1                   # if mongo1 is primary
 - Recover: `docker start mongo1`. It rejoins as SECONDARY. Why doesn't it become primary again?
 - Write `runbooks/mongo-primary-down.md`
 
-### 2. Secondary lagging / offline
+### 2. Replication lag
+Watch lag with `scripts/rs_lag.sh --watch 1` instead of `rs_roles.sh`.
+
+> **Check roles first, every time.** The primary can change whenever the lab restarts. Run `scripts/rs_roles.sh` and use the **current secondaries** in place of `<secondary>`, `<secondary-a>` and `<secondary-b>` below. Locking the primary stops all writes. That's a different incident (see the runbook).
+
+The connect command for each node is in the table at the top: mongo1 → port 27017, mongo2 → 27018, mongo3 → 27019.
+
+**A. One slow secondary** (a lock left behind by a snapshot backup):
 ```bash
-docker pause mongo3
-python scripts/load_gen.py seed --count 50000    # write while mongo3 is frozen
-docker unpause mongo3
+docker exec <secondary> mongosh --quiet --port <port> --eval 'db.fsyncLock()'
+# wait ~60 s: lag grows ~1 s per second, writes carry on
+docker exec <secondary> mongosh --quiet --port <port> --eval 'db.adminCommand({ currentOp: 1 }).fsyncLock'   # true = the cause
+docker exec <secondary> mongosh --quiet --port <port> --eval 'db.fsyncUnlock()'
 ```
-- Before unpausing, look at `rs.printSecondaryReplicationInfo()`. After unpausing, watch the lag drop to 0.
-- `rs.printReplicationInfo()` shows the oplog window. What happens if a node is offline longer than that?
-- Write `runbooks/mongo-replication-lag.md`
+
+**B. Secondary offline:**
+```bash
+docker pause <secondary>      # after ~10 s: (not reachable/healthy), lag=unknown (down)
+docker unpause <secondary>    # catches up within seconds
+```
+- `rs.printReplicationInfo()` on the primary shows the oplog window. What happens if a node is offline longer than that?
+
+**C. Both secondaries lag** (the silent outage):
+```bash
+docker exec <secondary-a> mongosh --quiet --port <port-a> --eval 'db.fsyncLock()'
+docker exec <secondary-b> mongosh --quiet --port <port-b> --eval 'db.fsyncLock()'
+# 15-20 s: writes hang with 0 errors, all nodes still "healthy"
+docker exec <secondary-a> mongosh --quiet --port <port-a> --eval 'db.fsyncUnlock()'
+docker exec <secondary-b> mongosh --quiet --port <port-b> --eval 'db.fsyncUnlock()'
+```
+- Runbook: [mongo-replication-lag.md](../../runbooks/mongo-replication-lag.md)
 
 ### 3. No primary (lost majority)
 ```bash
